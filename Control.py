@@ -23,7 +23,7 @@ def GameQuit(WinControl):
 
 
 def RunGameLevel(WinControl, level=0, solo=0):
-    os.system("ConRan.py --level "+str(level)+" --solo "+str(solo))
+    os.system("python ConRan.py --level "+str(level)+" --solo "+str(solo))
     global msg1
     lb = Label(WinControl, text="Điểm\n"+msg1, fg="#006400")
     lb.config(font=("Courier", 25))
