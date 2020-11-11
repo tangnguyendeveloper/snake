@@ -4,6 +4,7 @@ import argparse
 import socket
 import time
 import math
+import json
 
 TITLE = 'Snake game'
 WIDTH = 600
@@ -35,10 +36,12 @@ BORDER_COLOR = BLACK
 screen = None
 font = None
 snake = None
+map_level = None
 direction = None
 apple = None
 old_tail = None
 score = []
+Level = 0
 
 Client_game = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 Client_game.connect((socket.gethostname(), 1234))
@@ -78,6 +81,27 @@ def draw_block(block, color):
     )
     pygame.display.update()
 
+def StringLevel():
+    return f'level_{Level}'
+
+def draw_map():
+    global map_level
+    with open("map.json", mode='r') as file_map:
+        map_infor = json.load(file_map)
+        map_level = map_infor[StringLevel()]
+    
+    for block in map_level:
+        pygame.draw.rect(
+            screen,
+            BLACK,
+            (
+                block[0],
+                block[1],
+                block[2],
+                block[3]
+            )
+        )
+    pygame.display.update()
 
 def draw_snake():
     for i in snake:
@@ -105,6 +129,13 @@ def move():
     draw_block(snake[0], HEAD_COLOR)
     pygame.display.update()
 
+def is_map(point_x, point_y):
+    for block in map_level:
+        for i in range(0, 21):
+            if point_x+i > block[0] and point_x+i < block[0]+block[2]:
+                if point_y+i > block[1] and point_y+i < block[1]+block[3]:
+                    return True
+    return False
 
 def is_bite_itself():
     for i in range(1, len(snake)):
@@ -118,15 +149,19 @@ def is_hit_wall():
         snake[0]['x'] == -BLOCK_SIZE or
         snake[0]['y'] == -BLOCK_SIZE or
         snake[0]['x'] == WIDTH or
-        snake[0]['y'] == HEIGHT
+        snake[0]['y'] == HEIGHT or
+        is_map(snake[0]['x'], snake[0]['y'])
     )
 
 
 def generate_apple():
-    x = random.randint(0, WIDTH // BLOCK_SIZE - 1)
-    y = random.randint(0, HEIGHT // BLOCK_SIZE - 1)
-    apple['x'] = x * BLOCK_SIZE
-    apple['y'] = y * BLOCK_SIZE
+    while True:
+        x = random.randint(0, WIDTH // BLOCK_SIZE - 1)
+        y = random.randint(0, HEIGHT // BLOCK_SIZE - 1)
+        apple['x'] = x * BLOCK_SIZE
+        apple['y'] = y * BLOCK_SIZE
+        if not is_map(apple['x'], apple['y']):
+            break
     draw_block(apple, APPLE_COLOR)
     pygame.display.update()
 
@@ -183,13 +218,16 @@ def display_score(level_score, level):
     pygame.display.update()
 
 def RunGameLevel(level):
+    global direction, Level
+    Level = level
+
     GameSetup()
     init_game()
+    draw_map()
     draw_snake()
     generate_apple()
     display_score(0, level)
-    global direction
-
+    
     level_score = 0
     running = True
     moved = True
@@ -220,6 +258,9 @@ def RunGameLevel(level):
             generate_apple()
             grow_up()
 
+        dl = DELAY_TIME-level*NEXT_LEVEL
+        if level < 5:
+            dl = dl-(dl*20)//100
         pygame.time.wait(DELAY_TIME-level*NEXT_LEVEL)
 
     pygame.display.quit()
